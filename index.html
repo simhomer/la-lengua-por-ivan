@@ -54,7 +54,7 @@
     h1{ margin:0; font-size:18px; font-weight:700; letter-spacing:0.2px; }
     .sub{ margin:0; color:var(--muted); font-size:13px; }
 
-    /* Search bar compact on top */
+    /* Dropdown compact on top */
     .searchbar{
       display:flex;
       align-items:center;
@@ -62,7 +62,7 @@
       width:540px;
       max-width:100%;
     }
-    .searchbar input{
+    .searchbar select{
       flex:1;
       padding:12px 14px;
       border-radius:10px;
@@ -71,10 +71,16 @@
       color:var(--text);
       font-size:14px;
       outline:none;
+      cursor:pointer;
     }
-    .searchbar input:focus{
+    .searchbar select:focus{
       box-shadow:0 0 0 3px rgba(96,165,250,0.06);
       border-color: rgba(96,165,250,0.35);
+    }
+    .searchbar select option{
+      background:var(--bg);
+      color:var(--text);
+      padding:8px;
     }
     .searchbar button{
       padding:10px 12px;
@@ -199,35 +205,259 @@
 
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
         <div class="searchbar" role="search" aria-label="Search translations">
-          <label for="q" class="sr-only">Search a word</label>
-          <input id="q" name="q" type="search" placeholder="Try: casa · Haus · дом · house" autocomplete="off" enterkeyhint="search" list="words" />
-          <button id="searchBtn" aria-label="Search">Search</button>
+          <label for="q" class="sr-only">Select a word</label>
+          <select id="q" name="q">
+            <option value="">Select a word to translate...</option>
+          </select>
         </div>
         <div id="error" class="error" role="alert" aria-live="polite"></div>
       </div>
     </header>
 
-    <datalist id="words"></datalist>
     <main id="result" class="result hidden" aria-live="polite"></main>
   </div>
 
   <script>
-    /* Demo dictionary — extend or replace with backend JSON */
+    /* Dictionary with 200 words — English and translations to Spanish, Russian, German */
     const DICTIONARY = [
-      { id: 1, en: "house",     es: "casa",      de: "Haus",      ru: "дом",       pos: "noun", forms: ["houses","casas","Häuser","дома","домов"] },
-      { id: 2, en: "cat",       es: "gato",      de: "Katze",     ru: "кот",       pos: "noun", forms: ["cats","gatos","кошки","Katzen"] },
-      { id: 3, en: "to eat",    es: "comer",     de: "essen",     ru: "есть",      pos: "verb", forms: ["eats","ate","eating","como","comes","come","comemos","esst","isst","ешь","ест","едят"] },
-      { id: 4, en: "red",       es: "rojo",      de: "rot",       ru: "красный",   pos: "adj",  forms: ["roja","rojos","rote","rotes","красная","красные"] },
-      { id: 5, en: "book",      es: "libro",     de: "Buch",      ru: "книга",     pos: "noun", forms: ["books","libros","Bücher","книги"] },
-      { id: 6, en: "water",     es: "agua",      de: "Wasser",    ru: "вода",      pos: "noun", forms: ["aguas","воды"] },
-      { id: 7, en: "hello",     es: "hola",      de: "hallo",     ru: "привет",    pos: "expr" },
-      { id: 8, en: "car",       es: "coche",     de: "Auto",      ru: "машина",    pos: "noun", forms: ["autos","авто","машины","coches"] },
-      { id: 9, en: "school",    es: "escuela",   de: "Schule",    ru: "школа",     pos: "noun", forms: ["escuelas","Schulen","школы","schools"] },
-      { id:10, en: "computer",  es: "ordenador", de: "Computer",  ru: "компьютер", pos: "noun", forms: ["computers","ordenadores","компьютеры"] },
+      { id: 1, en: "house", es: "casa", de: "Haus", ru: "дом", pos: "noun", forms: ["houses","casas","Häuser","дома","домов"] },
+      { id: 2, en: "cat", es: "gato", de: "Katze", ru: "кот", pos: "noun", forms: ["cats","gatos","кошки","Katzen"] },
+      { id: 3, en: "to eat", es: "comer", de: "essen", ru: "есть", pos: "verb", forms: ["eats","ate","eating","como","comes","come","comemos","esst","isst","ешь","ест","едят"] },
+      { id: 4, en: "red", es: "rojo", de: "rot", ru: "красный", pos: "adj", forms: ["roja","rojos","rote","rotes","красная","красные"] },
+      { id: 5, en: "book", es: "libro", de: "Buch", ru: "книга", pos: "noun", forms: ["books","libros","Bücher","книги"] },
+      { id: 6, en: "water", es: "agua", de: "Wasser", ru: "вода", pos: "noun", forms: ["aguas","воды"] },
+      { id: 7, en: "hello", es: "hola", de: "hallo", ru: "привет", pos: "expr" },
+      { id: 8, en: "car", es: "coche", de: "Auto", ru: "машина", pos: "noun", forms: ["autos","авто","машины","coches"] },
+      { id: 9, en: "school", es: "escuela", de: "Schule", ru: "школа", pos: "noun", forms: ["escuelas","Schulen","школы","schools"] },
+      { id: 10, en: "computer", es: "ordenador", de: "Computer", ru: "компьютер", pos: "noun", forms: ["computers","ordenadores","компьютеры"] },
+      { id: 11, en: "dog", es: "perro", de: "Hund", ru: "собака", pos: "noun", forms: ["dogs","perros","Hunde","собаки"] },
+      { id: 12, en: "blue", es: "azul", de: "blau", ru: "синий", pos: "adj", forms: ["azules","blaue","синяя","синие"] },
+      { id: 13, en: "to run", es: "correr", de: "laufen", ru: "бежать", pos: "verb", forms: ["runs","ran","running","corro","corres","corre","läuft","läufst","бегу","бежишь","бежит"] },
+      { id: 14, en: "tree", es: "árbol", de: "Baum", ru: "дерево", pos: "noun", forms: ["trees","árboles","Bäume","деревья"] },
+      { id: 15, en: "big", es: "grande", de: "groß", ru: "большой", pos: "adj", forms: ["grandes","große","большая","большие"] },
+      { id: 16, en: "small", es: "pequeño", de: "klein", ru: "маленький", pos: "adj", forms: ["pequeña","pequeños","kleine","маленькая","маленькие"] },
+      { id: 17, en: "to sleep", es: "dormir", de: "schlafen", ru: "спать", pos: "verb", forms: ["sleeps","slept","sleeping","duermo","duermes","duerme","schläft","schläfst","сплю","спишь","спит"] },
+      { id: 18, en: "table", es: "mesa", de: "Tisch", ru: "стол", pos: "noun", forms: ["tables","mesas","Tische","столы"] },
+      { id: 19, en: "chair", es: "silla", de: "Stuhl", ru: "стул", pos: "noun", forms: ["chairs","sillas","Stühle","стулья"] },
+      { id: 20, en: "good", es: "bueno", de: "gut", ru: "хороший", pos: "adj", forms: ["buena","buenos","gute","хорошая","хорошие"] },
+      { id: 21, en: "bad", es: "malo", de: "schlecht", ru: "плохой", pos: "adj", forms: ["mala","malos","schlechte","плохая","плохие"] },
+      { id: 22, en: "to walk", es: "caminar", de: "gehen", ru: "ходить", pos: "verb", forms: ["walks","walked","walking","camino","caminas","camina","geht","gehst","хожу","ходишь","ходит"] },
+      { id: 23, en: "mountain", es: "montaña", de: "Berg", ru: "гора", pos: "noun", forms: ["mountains","montañas","Berge","горы"] },
+      { id: 24, en: "river", es: "río", de: "Fluss", ru: "река", pos: "noun", forms: ["rivers","ríos","Flüsse","реки"] },
+      { id: 25, en: "fast", es: "rápido", de: "schnell", ru: "быстрый", pos: "adj", forms: ["rápida","rápidos","schnelle","быстрая","быстрые"] },
+      { id: 26, en: "slow", es: "lento", de: "langsam", ru: "медленный", pos: "adj", forms: ["lenta","lentos","langsame","медленная","медленные"] },
+      { id: 27, en: "to speak", es: "hablar", de: "sprechen", ru: "говорить", pos: "verb", forms: ["speaks","spoke","speaking","hablo","hablas","habla","spricht","sprichst","говорю","говоришь","говорит"] },
+      { id: 28, en: "friend", es: "amigo", de: "Freund", ru: "друг", pos: "noun", forms: ["friends","amigos","Freunde","друзья"] },
+      { id: 29, en: "family", es: "familia", de: "Familie", ru: "семья", pos: "noun", forms: ["families","familias","Familien","семьи"] },
+      { id: 30, en: "work", es: "trabajo", de: "Arbeit", ru: "работа", pos: "noun", forms: ["works","trabajos","Arbeiten","работы"] },
+      { id: 31, en: "to work", es: "trabajar", de: "arbeiten", ru: "работать", pos: "verb", forms: ["works","worked","working","trabajo","trabajas","trabaja","arbeitet","arbeitest","работаю","работаешь","работает"] },
+      { id: 32, en: "money", es: "dinero", de: "Geld", ru: "деньги", pos: "noun", forms: ["moneys","dineros","Gelder","денег"] },
+      { id: 33, en: "time", es: "tiempo", de: "Zeit", ru: "время", pos: "noun", forms: ["times","tiempos","Zeiten","времена"] },
+      { id: 34, en: "day", es: "día", de: "Tag", ru: "день", pos: "noun", forms: ["days","días","Tage","дни"] },
+      { id: 35, en: "night", es: "noche", de: "Nacht", ru: "ночь", pos: "noun", forms: ["nights","noches","Nächte","ночи"] },
+      { id: 36, en: "morning", es: "mañana", de: "Morgen", ru: "утро", pos: "noun", forms: ["mornings","mañanas","Morgen","утра"] },
+      { id: 37, en: "evening", es: "tarde", de: "Abend", ru: "вечер", pos: "noun", forms: ["evenings","tardes","Abende","вечера"] },
+      { id: 38, en: "week", es: "semana", de: "Woche", ru: "неделя", pos: "noun", forms: ["weeks","semanas","Wochen","недели"] },
+      { id: 39, en: "month", es: "mes", de: "Monat", ru: "месяц", pos: "noun", forms: ["months","meses","Monate","месяцы"] },
+      { id: 40, en: "year", es: "año", de: "Jahr", ru: "год", pos: "noun", forms: ["years","años","Jahre","годы"] },
+      { id: 41, en: "today", es: "hoy", de: "heute", ru: "сегодня", pos: "adv" },
+      { id: 42, en: "yesterday", es: "ayer", de: "gestern", ru: "вчера", pos: "adv" },
+      { id: 43, en: "tomorrow", es: "mañana", de: "morgen", ru: "завтра", pos: "adv" },
+      { id: 44, en: "now", es: "ahora", de: "jetzt", ru: "сейчас", pos: "adv" },
+      { id: 45, en: "here", es: "aquí", de: "hier", ru: "здесь", pos: "adv" },
+      { id: 46, en: "there", es: "allí", de: "dort", ru: "там", pos: "adv" },
+      { id: 47, en: "where", es: "dónde", de: "wo", ru: "где", pos: "adv" },
+      { id: 48, en: "when", es: "cuándo", de: "wann", ru: "когда", pos: "adv" },
+      { id: 49, en: "why", es: "por qué", de: "warum", ru: "почему", pos: "adv" },
+      { id: 50, en: "how", es: "cómo", de: "wie", ru: "как", pos: "adv" },
+      { id: 51, en: "what", es: "qué", de: "was", ru: "что", pos: "pron" },
+      { id: 52, en: "who", es: "quién", de: "wer", ru: "кто", pos: "pron" },
+      { id: 53, en: "which", es: "cuál", de: "welcher", ru: "который", pos: "pron", forms: ["cuáles","welche","которая","которые"] },
+      { id: 54, en: "this", es: "este", de: "dieser", ru: "этот", pos: "pron", forms: ["esta","estos","diese","dieses","эта","эти"] },
+      { id: 55, en: "that", es: "ese", de: "jener", ru: "тот", pos: "pron", forms: ["esa","esos","jene","jenes","та","те"] },
+      { id: 56, en: "I", es: "yo", de: "ich", ru: "я", pos: "pron" },
+      { id: 57, en: "you", es: "tú", de: "du", ru: "ты", pos: "pron", forms: ["usted","Sie","вы"] },
+      { id: 58, en: "he", es: "él", de: "er", ru: "он", pos: "pron" },
+      { id: 59, en: "she", es: "ella", de: "sie", ru: "она", pos: "pron" },
+      { id: 60, en: "we", es: "nosotros", de: "wir", ru: "мы", pos: "pron", forms: ["nosotras"] },
+      { id: 61, en: "they", es: "ellos", de: "sie", ru: "они", pos: "pron", forms: ["ellas"] },
+      { id: 62, en: "my", es: "mi", de: "mein", ru: "мой", pos: "pron", forms: ["mis","meine","mein","моя","моё","мои"] },
+      { id: 63, en: "your", es: "tu", de: "dein", ru: "твой", pos: "pron", forms: ["tus","deine","dein","твоя","твоё","твои"] },
+      { id: 64, en: "his", es: "su", de: "sein", ru: "его", pos: "pron", forms: ["sus","seine","sein"] },
+      { id: 65, en: "her", es: "su", de: "ihr", ru: "её", pos: "pron", forms: ["sus","ihre","ihr"] },
+      { id: 66, en: "our", es: "nuestro", de: "unser", ru: "наш", pos: "pron", forms: ["nuestra","nuestros","unsere","unser","наша","наше","наши"] },
+      { id: 67, en: "their", es: "su", de: "ihr", ru: "их", pos: "pron", forms: ["sus","ihre","ihr"] },
+      { id: 68, en: "one", es: "uno", de: "eins", ru: "один", pos: "num", forms: ["una","eine","одна","одно"] },
+      { id: 69, en: "two", es: "dos", de: "zwei", ru: "два", pos: "num", forms: ["две"] },
+      { id: 70, en: "three", es: "tres", de: "drei", ru: "три", pos: "num" },
+      { id: 71, en: "four", es: "cuatro", de: "vier", ru: "четыре", pos: "num" },
+      { id: 72, en: "five", es: "cinco", de: "fünf", ru: "пять", pos: "num" },
+      { id: 73, en: "six", es: "seis", de: "sechs", ru: "шесть", pos: "num" },
+      { id: 74, en: "seven", es: "siete", de: "sieben", ru: "семь", pos: "num" },
+      { id: 75, en: "eight", es: "ocho", de: "acht", ru: "восемь", pos: "num" },
+      { id: 76, en: "nine", es: "nueve", de: "neun", ru: "девять", pos: "num" },
+      { id: 77, en: "ten", es: "diez", de: "zehn", ru: "десять", pos: "num" },
+      { id: 78, en: "hundred", es: "cien", de: "hundert", ru: "сто", pos: "num" },
+      { id: 79, en: "thousand", es: "mil", de: "tausend", ru: "тысяча", pos: "num", forms: ["miles","tausende","тысячи"] },
+      { id: 80, en: "million", es: "millón", de: "Million", ru: "миллион", pos: "num", forms: ["millones","Millionen","миллионы"] },
+      { id: 81, en: "to see", es: "ver", de: "sehen", ru: "видеть", pos: "verb", forms: ["sees","saw","seeing","veo","ves","ve","sieht","siehst","вижу","видишь","видит"] },
+      { id: 82, en: "to hear", es: "oír", de: "hören", ru: "слышать", pos: "verb", forms: ["hears","heard","hearing","oigo","oyes","oye","hört","hörst","слышу","слышишь","слышит"] },
+      { id: 83, en: "to know", es: "saber", de: "wissen", ru: "знать", pos: "verb", forms: ["knows","knew","knowing","sé","sabes","sabe","weiß","weißt","знаю","знаешь","знает"] },
+      { id: 84, en: "to think", es: "pensar", de: "denken", ru: "думать", pos: "verb", forms: ["thinks","thought","thinking","pienso","piensas","piensa","denkt","denkst","думаю","думаешь","думает"] },
+      { id: 85, en: "to feel", es: "sentir", de: "fühlen", ru: "чувствовать", pos: "verb", forms: ["feels","felt","feeling","siento","sientes","siente","fühlt","fühlst","чувствую","чувствуешь","чувствует"] },
+      { id: 86, en: "to love", es: "amar", de: "lieben", ru: "любить", pos: "verb", forms: ["loves","loved","loving","amo","amas","ama","liebt","liebst","люблю","любишь","любит"] },
+      { id: 87, en: "to like", es: "gustar", de: "mögen", ru: "нравиться", pos: "verb", forms: ["likes","liked","liking","gusto","gustas","gusta","mag","mögen","нравится","нравлюсь","нравишься"] },
+      { id: 88, en: "to want", es: "querer", de: "wollen", ru: "хотеть", pos: "verb", forms: ["wants","wanted","wanting","quiero","quieres","quiere","will","wollt","хочу","хочешь","хочет"] },
+      { id: 89, en: "to need", es: "necesitar", de: "brauchen", ru: "нуждаться", pos: "verb", forms: ["needs","needed","needing","necesito","necesitas","necesita","braucht","brauchst","нуждаюсь","нуждаешься","нуждается"] },
+      { id: 90, en: "to have", es: "tener", de: "haben", ru: "иметь", pos: "verb", forms: ["has","had","having","tengo","tienes","tiene","hat","habt","имею","имеешь","имеет"] },
+      { id: 91, en: "to be", es: "ser", de: "sein", ru: "быть", pos: "verb", forms: ["is","are","was","were","being","soy","eres","es","somos","son","bin","bist","ist","sind","есть","был","была","было","были"] },
+      { id: 92, en: "to go", es: "ir", de: "gehen", ru: "идти", pos: "verb", forms: ["goes","went","going","voy","vas","va","vamos","van","geht","gehst","иду","идёшь","идёт","идём","идёте","идут"] },
+      { id: 93, en: "to come", es: "venir", de: "kommen", ru: "приходить", pos: "verb", forms: ["comes","came","coming","vengo","vienes","viene","kommt","kommst","прихожу","приходишь","приходит"] },
+      { id: 94, en: "to give", es: "dar", de: "geben", ru: "давать", pos: "verb", forms: ["gives","gave","giving","doy","das","da","gibt","gibst","даю","даёшь","даёт"] },
+      { id: 95, en: "to take", es: "tomar", de: "nehmen", ru: "брать", pos: "verb", forms: ["takes","took","taking","tomo","tomas","toma","nimmt","nimmst","беру","берёшь","берёт"] },
+      { id: 96, en: "to make", es: "hacer", de: "machen", ru: "делать", pos: "verb", forms: ["makes","made","making","hago","haces","hace","macht","machst","делаю","делаешь","делает"] },
+      { id: 97, en: "to do", es: "hacer", de: "tun", ru: "делать", pos: "verb", forms: ["does","did","doing","hago","haces","hace","tut","tust","делаю","делаешь","делает"] },
+      { id: 98, en: "to say", es: "decir", de: "sagen", ru: "говорить", pos: "verb", forms: ["says","said","saying","digo","dices","dice","sagt","sagst","говорю","говоришь","говорит"] },
+      { id: 99, en: "to tell", es: "contar", de: "erzählen", ru: "рассказывать", pos: "verb", forms: ["tells","told","telling","cuento","cuentas","cuenta","erzählt","erzählst","рассказываю","рассказываешь","рассказывает"] },
+      { id: 100, en: "to ask", es: "preguntar", de: "fragen", ru: "спрашивать", pos: "verb", forms: ["asks","asked","asking","pregunto","preguntas","pregunta","fragt","fragst","спрашиваю","спрашиваешь","спрашивает"] },
+      { id: 101, en: "to answer", es: "responder", de: "antworten", ru: "отвечать", pos: "verb", forms: ["answers","answered","answering","respondo","respondes","responde","antwortet","antwortest","отвечаю","отвечаешь","отвечает"] },
+      { id: 102, en: "to call", es: "llamar", de: "anrufen", ru: "звонить", pos: "verb", forms: ["calls","called","calling","llamo","llamas","llama","ruft","rufst","звоню","звонишь","звонит"] },
+      { id: 103, en: "to help", es: "ayudar", de: "helfen", ru: "помогать", pos: "verb", forms: ["helps","helped","helping","ayudo","ayudas","ayuda","hilft","hilfst","помогаю","помогаешь","помогает"] },
+      { id: 104, en: "to play", es: "jugar", de: "spielen", ru: "играть", pos: "verb", forms: ["plays","played","playing","juego","juegas","juega","spielt","spielst","играю","играешь","играет"] },
+      { id: 105, en: "to read", es: "leer", de: "lesen", ru: "читать", pos: "verb", forms: ["reads","read","reading","leo","lees","lee","liest","lese","читаю","читаешь","читает"] },
+      { id: 106, en: "to write", es: "escribir", de: "schreiben", ru: "писать", pos: "verb", forms: ["writes","wrote","writing","escribo","escribes","escribe","schreibt","schreibst","пишу","пишешь","пишет"] },
+      { id: 107, en: "to learn", es: "aprender", de: "lernen", ru: "учиться", pos: "verb", forms: ["learns","learned","learning","aprendo","aprendes","aprende","lernt","lernst","учусь","учишься","учится"] },
+      { id: 108, en: "to teach", es: "enseñar", de: "lehren", ru: "учить", pos: "verb", forms: ["teaches","taught","teaching","enseño","enseñas","enseña","lehrt","lehrst","учу","учишь","учит"] },
+      { id: 109, en: "to study", es: "estudiar", de: "studieren", ru: "изучать", pos: "verb", forms: ["studies","studied","studying","estudio","estudias","estudia","studiert","studierst","изучаю","изучаешь","изучает"] },
+      { id: 110, en: "to understand", es: "entender", de: "verstehen", ru: "понимать", pos: "verb", forms: ["understands","understood","understanding","entiendo","entiendes","entiende","versteht","verstehst","понимаю","понимаешь","понимает"] },
+      { id: 111, en: "to remember", es: "recordar", de: "sich erinnern", ru: "помнить", pos: "verb", forms: ["remembers","remembered","remembering","recuerdo","recuerdas","recuerda","erinnert","erinnerst","помню","помнишь","помнит"] },
+      { id: 112, en: "to forget", es: "olvidar", de: "vergessen", ru: "забывать", pos: "verb", forms: ["forgets","forgot","forgetting","olvido","olvidas","olvida","vergisst","vergessst","забываю","забываешь","забывает"] },
+      { id: 113, en: "to find", es: "encontrar", de: "finden", ru: "находить", pos: "verb", forms: ["finds","found","finding","encuentro","encuentras","encuentra","findet","findest","нахожу","находишь","находит"] },
+      { id: 114, en: "to lose", es: "perder", de: "verlieren", ru: "терять", pos: "verb", forms: ["loses","lost","losing","pierdo","pierdes","pierde","verliert","verlierst","теряю","теряешь","теряет"] },
+      { id: 115, en: "to win", es: "ganar", de: "gewinnen", ru: "выигрывать", pos: "verb", forms: ["wins","won","winning","gano","ganas","gana","gewinnt","gewinnst","выигрываю","выигрываешь","выигрывает"] },
+      { id: 116, en: "to buy", es: "comprar", de: "kaufen", ru: "покупать", pos: "verb", forms: ["buys","bought","buying","compro","compras","compra","kauft","kaufst","покупаю","покупаешь","покупает"] },
+      { id: 117, en: "to sell", es: "vender", de: "verkaufen", ru: "продавать", pos: "verb", forms: ["sells","sold","selling","vendo","vendes","vende","verkauft","verkaufst","продаю","продаёшь","продаёт"] },
+      { id: 118, en: "to pay", es: "pagar", de: "bezahlen", ru: "платить", pos: "verb", forms: ["pays","paid","paying","pago","pagas","paga","bezahlt","bezahlst","плачу","платишь","платит"] },
+      { id: 119, en: "to cost", es: "costar", de: "kosten", ru: "стоить", pos: "verb", forms: ["costs","cost","costing","cuesto","cuestas","cuesta","kostet","kostest","стою","стоишь","стоит"] },
+      { id: 120, en: "to open", es: "abrir", de: "öffnen", ru: "открывать", pos: "verb", forms: ["opens","opened","opening","abro","abres","abre","öffnet","öffnest","открываю","открываешь","открывает"] },
+      { id: 121, en: "to close", es: "cerrar", de: "schließen", ru: "закрывать", pos: "verb", forms: ["closes","closed","closing","cierro","cierras","cierra","schließt","schließest","закрываю","закрываешь","закрывает"] },
+      { id: 122, en: "to start", es: "empezar", de: "anfangen", ru: "начинать", pos: "verb", forms: ["starts","started","starting","empiezo","empiezas","empieza","fängt","fängst","начинаю","начинаешь","начинает"] },
+      { id: 123, en: "to stop", es: "parar", de: "stoppen", ru: "останавливать", pos: "verb", forms: ["stops","stopped","stopping","paro","paras","para","stoppt","stoppst","останавливаю","останавливаешь","останавливает"] },
+      { id: 124, en: "to finish", es: "terminar", de: "beenden", ru: "заканчивать", pos: "verb", forms: ["finishes","finished","finishing","termino","terminas","termina","beendet","beendest","заканчиваю","заканчиваешь","заканчивает"] },
+      { id: 125, en: "to continue", es: "continuar", de: "fortsetzen", ru: "продолжать", pos: "verb", forms: ["continues","continued","continuing","continúo","continúas","continúa","setzt","setzst","продолжаю","продолжаешь","продолжает"] },
+      { id: 126, en: "to wait", es: "esperar", de: "warten", ru: "ждать", pos: "verb", forms: ["waits","waited","waiting","espero","esperas","espera","wartet","wartest","жду","ждёшь","ждёт"] },
+      { id: 127, en: "to stay", es: "quedarse", de: "bleiben", ru: "оставаться", pos: "verb", forms: ["stays","stayed","staying","me quedo","te quedas","se queda","bleibt","bleibst","остаюсь","остаёшься","остаётся"] },
+      { id: 128, en: "to leave", es: "salir", de: "verlassen", ru: "уходить", pos: "verb", forms: ["leaves","left","leaving","salgo","sales","sale","verlässt","verlässt","ухожу","уходишь","уходит"] },
+      { id: 129, en: "to arrive", es: "llegar", de: "ankommen", ru: "прибывать", pos: "verb", forms: ["arrives","arrived","arriving","llego","llegas","llega","kommt","kommst","прибываю","прибываешь","прибывает"] },
+      { id: 130, en: "to return", es: "volver", de: "zurückkehren", ru: "возвращаться", pos: "verb", forms: ["returns","returned","returning","vuelvo","vuelves","vuelve","kehrt","kehrst","возвращаюсь","возвращаешься","возвращается"] },
+      { id: 131, en: "to travel", es: "viajar", de: "reisen", ru: "путешествовать", pos: "verb", forms: ["travels","traveled","traveling","viajo","viajas","viaja","reist","reise","путешествую","путешествуешь","путешествует"] },
+      { id: 132, en: "to visit", es: "visitar", de: "besuchen", ru: "посещать", pos: "verb", forms: ["visits","visited","visiting","visito","visitas","visita","besucht","besuchst","посещаю","посещаешь","посещает"] },
+      { id: 133, en: "to meet", es: "encontrar", de: "treffen", ru: "встречать", pos: "verb", forms: ["meets","met","meeting","encuentro","encuentras","encuentra","trifft","triffst","встречаю","встречаешь","встречает"] },
+      { id: 134, en: "to live", es: "vivir", de: "leben", ru: "жить", pos: "verb", forms: ["lives","lived","living","vivo","vives","vive","lebt","lebst","живу","живёшь","живёт"] },
+      { id: 135, en: "to die", es: "morir", de: "sterben", ru: "умирать", pos: "verb", forms: ["dies","died","dying","muero","mueres","muere","stirbt","stirbst","умираю","умираешь","умирает"] },
+      { id: 136, en: "to be born", es: "nacer", de: "geboren werden", ru: "рождаться", pos: "verb", forms: ["is born","are born","was born","were born","being born","nazco","naces","nace","wird","wirst","рождаюсь","рождаешься","рождается"] },
+      { id: 137, en: "to grow", es: "crecer", de: "wachsen", ru: "расти", pos: "verb", forms: ["grows","grew","growing","crezco","creces","crece","wächst","wächst","расту","растёшь","растёт"] },
+      { id: 138, en: "to change", es: "cambiar", de: "ändern", ru: "менять", pos: "verb", forms: ["changes","changed","changing","cambio","cambias","cambia","ändert","änderst","меняю","меняешь","меняет"] },
+      { id: 139, en: "to become", es: "convertirse", de: "werden", ru: "становиться", pos: "verb", forms: ["becomes","became","becoming","me convierto","te conviertes","se convierte","wird","wirst","становлюсь","становишься","становится"] },
+      { id: 140, en: "to happen", es: "pasar", de: "passieren", ru: "происходить", pos: "verb", forms: ["happens","happened","happening","pasa","pasa","pasa","passiert","passierst","происходит","происходит","происходит"] },
+      { id: 141, en: "to try", es: "intentar", de: "versuchen", ru: "пытаться", pos: "verb", forms: ["tries","tried","trying","intento","intentas","intenta","versucht","versuchst","пытаюсь","пытаешься","пытается"] },
+      { id: 142, en: "to succeed", es: "tener éxito", de: "erfolgreich sein", ru: "преуспевать", pos: "verb", forms: ["succeeds","succeeded","succeeding","tengo éxito","tienes éxito","tiene éxito","ist erfolgreich","bist erfolgreich","преуспеваю","преуспеваешь","преуспевает"] },
+      { id: 143, en: "to fail", es: "fallar", de: "scheitern", ru: "терпеть неудачу", pos: "verb", forms: ["fails","failed","failing","fallo","fallas","falla","scheitert","scheiterst","терплю неудачу","терпишь неудачу","терпит неудачу"] },
+      { id: 144, en: "to hope", es: "esperar", de: "hoffen", ru: "надеяться", pos: "verb", forms: ["hopes","hoped","hoping","espero","esperas","espera","hofft","hoffst","надеюсь","надеешься","надеется"] },
+      { id: 145, en: "to wish", es: "desear", de: "wünschen", ru: "желать", pos: "verb", forms: ["wishes","wished","wishing","deseo","deseas","desea","wünscht","wünschst","желаю","желаешь","желает"] },
+      { id: 146, en: "to dream", es: "soñar", de: "träumen", ru: "мечтать", pos: "verb", forms: ["dreams","dreamed","dreaming","sueño","sueñas","sueña","träumt","träumst","мечтаю","мечтаешь","мечтает"] },
+      { id: 147, en: "to believe", es: "creer", de: "glauben", ru: "верить", pos: "verb", forms: ["believes","believed","believing","creo","crees","cree","glaubt","glaubst","верю","веришь","верит"] },
+      { id: 148, en: "to doubt", es: "dudar", de: "zweifeln", ru: "сомневаться", pos: "verb", forms: ["doubts","doubted","doubting","dudo","dudas","duda","zweifelt","zweifelst","сомневаюсь","сомневаешься","сомневается"] },
+      { id: 149, en: "to trust", es: "confiar", de: "vertrauen", ru: "доверять", pos: "verb", forms: ["trusts","trusted","trusting","confío","confías","confía","vertraut","vertraust","доверяю","доверяешь","доверяет"] },
+      { id: 150, en: "to promise", es: "prometer", de: "versprechen", ru: "обещать", pos: "verb", forms: ["promises","promised","promising","prometo","prometes","promete","verspricht","versprichst","обещаю","обещаешь","обещает"] },
+      { id: 151, en: "to agree", es: "estar de acuerdo", de: "zustimmen", ru: "соглашаться", pos: "verb", forms: ["agrees","agreed","agreeing","estoy de acuerdo","estás de acuerdo","está de acuerdo","stimmt","stimmst","соглашаюсь","соглашаешься","соглашается"] },
+      { id: 152, en: "to disagree", es: "discrepar", de: "nicht zustimmen", ru: "не соглашаться", pos: "verb", forms: ["disagrees","disagreed","disagreeing","discrepo","discrepas","discrepa","stimmt nicht","stimmst nicht","не соглашаюсь","не соглашаешься","не соглашается"] },
+      { id: 153, en: "to accept", es: "aceptar", de: "akzeptieren", ru: "принимать", pos: "verb", forms: ["accepts","accepted","accepting","acepto","aceptas","acepta","akzeptiert","akzeptierst","принимаю","принимаешь","принимает"] },
+      { id: 154, en: "to refuse", es: "rechazar", de: "ablehnen", ru: "отказываться", pos: "verb", forms: ["refuses","refused","refusing","rechazo","rechazas","rechaza","lehnt","lehnst","отказываюсь","отказываешься","отказывается"] },
+      { id: 155, en: "to choose", es: "elegir", de: "wählen", ru: "выбирать", pos: "verb", forms: ["chooses","chose","choosing","elijo","eliges","elige","wählt","wählst","выбираю","выбираешь","выбирает"] },
+      { id: 156, en: "to decide", es: "decidir", de: "entscheiden", ru: "решать", pos: "verb", forms: ["decides","decided","deciding","decido","decides","decide","entscheidet","entscheidest","решаю","решаешь","решает"] },
+      { id: 157, en: "to plan", es: "planear", de: "planen", ru: "планировать", pos: "verb", forms: ["plans","planned","planning","planeo","planeas","planea","plant","planst","планирую","планируешь","планирует"] },
+      { id: 158, en: "to prepare", es: "preparar", de: "vorbereiten", ru: "готовить", pos: "verb", forms: ["prepares","prepared","preparing","preparo","preparas","prepara","bereitet","bereitest","готовлю","готовишь","готовит"] },
+      { id: 159, en: "to cook", es: "cocinar", de: "kochen", ru: "готовить", pos: "verb", forms: ["cooks","cooked","cooking","cocino","cocinas","cocina","kocht","kochst","готовлю","готовишь","готовит"] },
+      { id: 160, en: "to clean", es: "limpiar", de: "putzen", ru: "убирать", pos: "verb", forms: ["cleans","cleaned","cleaning","limpio","limpias","limpia","putzt","putzst","убираю","убираешь","убирает"] },
+      { id: 161, en: "to wash", es: "lavar", de: "waschen", ru: "мыть", pos: "verb", forms: ["washes","washed","washing","lavo","lavas","lava","wäscht","wäschst","мою","моешь","моет"] },
+      { id: 162, en: "to dress", es: "vestir", de: "anziehen", ru: "одеваться", pos: "verb", forms: ["dresses","dressed","dressing","visto","vistes","viste","zieht","ziehst","одеваюсь","одеваешься","одевается"] },
+      { id: 163, en: "to undress", es: "desvestir", de: "ausziehen", ru: "раздеваться", pos: "verb", forms: ["undresses","undressed","undressing","desvisto","desvistes","desviste","zieht","ziehst","раздеваюсь","раздеваешься","раздевается"] },
+      { id: 164, en: "to shower", es: "ducharse", de: "duschen", ru: "принимать душ", pos: "verb", forms: ["showers","showered","showering","me ducho","te duchas","se ducha","duscht","duschst","принимаю душ","принимаешь душ","принимает душ"] },
+      { id: 165, en: "to brush", es: "cepillar", de: "bürsten", ru: "чистить", pos: "verb", forms: ["brushes","brushed","brushing","cepillo","cepillas","cepilla","bürstet","bürstest","чищу","чистишь","чистит"] },
+      { id: 166, en: "to comb", es: "peinar", de: "kämmen", ru: "расчёсывать", pos: "verb", forms: ["combs","combed","combing","peino","peinas","peina","kämmt","kämmst","расчёсываю","расчёсываешь","расчёсывает"] },
+      { id: 167, en: "to shave", es: "afeitar", de: "rasieren", ru: "бриться", pos: "verb", forms: ["shaves","shaved","shaving","afeito","afeitas","afeita","rasiert","rasierst","бреюсь","бреешься","бреется"] },
+      { id: 168, en: "to exercise", es: "ejercitar", de: "trainieren", ru: "тренироваться", pos: "verb", forms: ["exercises","exercised","exercising","ejercito","ejercitas","ejercita","trainiert","trainierst","тренируюсь","тренируешься","тренируется"] },
+      { id: 169, en: "to rest", es: "descansar", de: "ruhen", ru: "отдыхать", pos: "verb", forms: ["rests","rested","resting","descanso","descansas","descansa","ruht","ruhst","отдыхаю","отдыхаешь","отдыхает"] },
+      { id: 170, en: "to relax", es: "relajarse", de: "entspannen", ru: "расслабляться", pos: "verb", forms: ["relaxes","relaxed","relaxing","me relajo","te relajas","se relaja","entspannt","entspannst","расслабляюсь","расслабляешься","расслабляется"] },
+      { id: 171, en: "to worry", es: "preocuparse", de: "sich sorgen", ru: "беспокоиться", pos: "verb", forms: ["worries","worried","worrying","me preocupo","te preocupas","se preocupa","sorgt","sorgst","беспокоюсь","беспокоишься","беспокоится"] },
+      { id: 172, en: "to fear", es: "temer", de: "fürchten", ru: "бояться", pos: "verb", forms: ["fears","feared","fearing","temo","temes","teme","fürchtet","fürchtest","боюсь","боишься","боится"] },
+      { id: 173, en: "to be afraid", es: "tener miedo", de: "Angst haben", ru: "бояться", pos: "verb", forms: ["is afraid","are afraid","was afraid","were afraid","being afraid","tengo miedo","tienes miedo","tiene miedo","hat Angst","hast Angst","боюсь","боишься","боится"] },
+      { id: 174, en: "to be happy", es: "estar feliz", de: "glücklich sein", ru: "быть счастливым", pos: "verb", forms: ["is happy","are happy","was happy","were happy","being happy","estoy feliz","estás feliz","está feliz","ist glücklich","bist glücklich","счастлив","счастлива","счастливы"] },
+      { id: 175, en: "to be sad", es: "estar triste", de: "traurig sein", ru: "быть грустным", pos: "verb", forms: ["is sad","are sad","was sad","were sad","being sad","estoy triste","estás triste","está triste","ist traurig","bist traurig","грустен","грустна","грустны"] },
+      { id: 176, en: "to be angry", es: "estar enojado", de: "wütend sein", ru: "быть злым", pos: "verb", forms: ["is angry","are angry","was angry","were angry","being angry","estoy enojado","estás enojado","está enojado","ist wütend","bist wütend","зол","зла","злы"] },
+      { id: 177, en: "to be tired", es: "estar cansado", de: "müde sein", ru: "быть усталым", pos: "verb", forms: ["is tired","are tired","was tired","were tired","being tired","estoy cansado","estás cansado","está cansado","ist müde","bist müde","устал","устала","усталы"] },
+      { id: 178, en: "to be sick", es: "estar enfermo", de: "krank sein", ru: "быть больным", pos: "verb", forms: ["is sick","are sick","was sick","were sick","being sick","estoy enfermo","estás enfermo","está enfermo","ist krank","bist krank","болен","больна","больны"] },
+      { id: 179, en: "to be healthy", es: "estar sano", de: "gesund sein", ru: "быть здоровым", pos: "verb", forms: ["is healthy","are healthy","was healthy","were healthy","being healthy","estoy sano","estás sano","está sano","ist gesund","bist gesund","здоров","здорова","здоровы"] },
+      { id: 180, en: "to be hungry", es: "tener hambre", de: "Hunger haben", ru: "быть голодным", pos: "verb", forms: ["is hungry","are hungry","was hungry","were hungry","being hungry","tengo hambre","tienes hambre","tiene hambre","hat Hunger","hast Hunger","голоден","голодна","голодны"] },
+      { id: 181, en: "to be thirsty", es: "tener sed", de: "Durst haben", ru: "быть жаждущим", pos: "verb", forms: ["is thirsty","are thirsty","was thirsty","were thirsty","being thirsty","tengo sed","tienes sed","tiene sed","hat Durst","hast Durst","жажду","жаждешь","жаждет"] },
+      { id: 182, en: "to be cold", es: "tener frío", de: "kalt sein", ru: "мёрзнуть", pos: "verb", forms: ["is cold","are cold","was cold","were cold","being cold","tengo frío","tienes frío","tiene frío","ist kalt","bist kalt","мёрзну","мёрзнешь","мёрзнет"] },
+      { id: 183, en: "to be hot", es: "tener calor", de: "heiß sein", ru: "жариться", pos: "verb", forms: ["is hot","are hot","was hot","were hot","being hot","tengo calor","tienes calor","tiene calor","ist heiß","bist heiß","жарюсь","жаришься","жарится"] },
+      { id: 184, en: "to be warm", es: "tener calor", de: "warm sein", ru: "согреваться", pos: "verb", forms: ["is warm","are warm","was warm","were warm","being warm","tengo calor","tienes calor","tiene calor","ist warm","bist warm","согреваюсь","согреваешься","согревается"] },
+      { id: 185, en: "to be cool", es: "estar fresco", de: "kühl sein", ru: "остывать", pos: "verb", forms: ["is cool","are cool","was cool","were cool","being cool","estoy fresco","estás fresco","está fresco","ist kühl","bist kühl","остываю","остываешь","остывает"] },
+      { id: 186, en: "to be wet", es: "estar mojado", de: "nass sein", ru: "быть мокрым", pos: "verb", forms: ["is wet","are wet","was wet","were wet","being wet","estoy mojado","estás mojado","está mojado","ist nass","bist nass","мокр","мокра","мокры"] },
+      { id: 187, en: "to be dry", es: "estar seco", de: "trocken sein", ru: "быть сухим", pos: "verb", forms: ["is dry","are dry","was dry","were dry","being dry","estoy seco","estás seco","está seco","ist trocken","bist trocken","сух","суха","сухи"] },
+      { id: 188, en: "to be dirty", es: "estar sucio", de: "schmutzig sein", ru: "быть грязным", pos: "verb", forms: ["is dirty","are dirty","was dirty","were dirty","being dirty","estoy sucio","estás sucio","está sucio","ist schmutzig","bist schmutzig","грязен","грязна","грязны"] },
+      { id: 189, en: "to be clean", es: "estar limpio", de: "sauber sein", ru: "быть чистым", pos: "verb", forms: ["is clean","are clean","was clean","were clean","being clean","estoy limpio","estás limpio","está limpio","ist sauber","bist sauber","чист","чиста","чисты"] },
+      { id: 190, en: "to be new", es: "ser nuevo", de: "neu sein", ru: "быть новым", pos: "verb", forms: ["is new","are new","was new","were new","being new","soy nuevo","eres nuevo","es nuevo","ist neu","bist neu","нов","нова","новы"] },
+      { id: 191, en: "to be old", es: "ser viejo", de: "alt sein", ru: "быть старым", pos: "verb", forms: ["is old","are old","was old","were old","being old","soy viejo","eres viejo","es viejo","ist alt","bist alt","стар","стара","стары"] },
+      { id: 192, en: "to be young", es: "ser joven", de: "jung sein", ru: "быть молодым", pos: "verb", forms: ["is young","are young","was young","were young","being young","soy joven","eres joven","es joven","ist jung","bist jung","молод","молода","молоды"] },
+      { id: 193, en: "to be beautiful", es: "ser hermoso", de: "schön sein", ru: "быть красивым", pos: "verb", forms: ["is beautiful","are beautiful","was beautiful","were beautiful","being beautiful","soy hermoso","eres hermoso","es hermoso","ist schön","bist schön","красив","красива","красивы"] },
+      { id: 194, en: "to be ugly", es: "ser feo", de: "hässlich sein", ru: "быть некрасивым", pos: "verb", forms: ["is ugly","are ugly","was ugly","were ugly","being ugly","soy feo","eres feo","es feo","ist hässlich","bist hässlich","некрасив","некрасива","некрасивы"] },
+      { id: 195, en: "to be rich", es: "ser rico", de: "reich sein", ru: "быть богатым", pos: "verb", forms: ["is rich","are rich","was rich","were rich","being rich","soy rico","eres rico","es rico","ist reich","bist reich","богат","богата","богаты"] },
+      { id: 196, en: "to be poor", es: "ser pobre", de: "arm sein", ru: "быть бедным", pos: "verb", forms: ["is poor","are poor","was poor","were poor","being poor","soy pobre","eres pobre","es pobre","ist arm","bist arm","беден","бедна","бедны"] },
+      { id: 197, en: "to be free", es: "ser libre", de: "frei sein", ru: "быть свободным", pos: "verb", forms: ["is free","are free","was free","were free","being free","soy libre","eres libre","es libre","ist frei","bist frei","свободен","свободна","свободны"] },
+      { id: 198, en: "to be busy", es: "estar ocupado", de: "beschäftigt sein", ru: "быть занятым", pos: "verb", forms: ["is busy","are busy","was busy","were busy","being busy","estoy ocupado","estás ocupado","está ocupado","ist beschäftigt","bist beschäftigt","занят","занята","заняты"] },
+      { id: 199, en: "to be ready", es: "estar listo", de: "bereit sein", ru: "быть готовым", pos: "verb", forms: ["is ready","are ready","was ready","were ready","being ready","estoy listo","estás listo","está listo","ist bereit","bist bereit","готов","готова","готовы"] },
+      { id: 200, en: "to be late", es: "llegar tarde", de: "zu spät sein", ru: "опаздывать", pos: "verb", forms: ["is late","are late","was late","were late","being late","llego tarde","llegas tarde","llega tarde","ist zu spät","bist zu spät","опаздываю","опаздываешь","опаздывает"] }
     ];
 
     const byId = id => document.getElementById(id);
-    const $q = byId("q"), $res = byId("result"), $err = byId("error"), $btn = byId("searchBtn");
+    const $q = byId("q"), $res = byId("result"), $err = byId("error");
+
+    // Function to get 10 random words from the dictionary
+    function getRandomWords(count = 10) {
+      const shuffled = [...DICTIONARY].sort(() => 0.5 - Math.random());
+      const randomWords = [];
+      
+      for (let i = 0; i < Math.min(count, shuffled.length); i++) {
+        const entry = shuffled[i];
+        // Randomly select one of the four languages for each word
+        const languages = ['en', 'es', 'de', 'ru'];
+        const randomLang = languages[Math.floor(Math.random() * languages.length)];
+        randomWords.push({
+          value: entry[randomLang],
+          text: entry[randomLang],
+          entry: entry
+        });
+      }
+      
+      return randomWords;
+    }
+
+    // Function to populate dropdown with random words
+    function populateDropdown() {
+      const randomWords = getRandomWords(10);
+      $q.innerHTML = '<option value="">Select a word to translate...</option>';
+      
+      randomWords.forEach(word => {
+        const option = document.createElement('option');
+        option.value = word.value;
+        option.textContent = word.text;
+        option.dataset.entry = JSON.stringify(word.entry);
+        $q.appendChild(option);
+      });
+    }
 
     const normalize = s => (s||"").toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
@@ -280,7 +510,7 @@
       $err.style.display = "none";
       const missing = !map || (!map.es && !map.de && !map.ru && !map.en);
       if (missing) {
-        $err.textContent = `No results for “${query}”.`;
+        $err.textContent = `No results for "${query}".`;
         $err.style.display = "block";
         return;
       }
@@ -328,11 +558,11 @@
     // With hardcoded dictionary only, no external API
 
     async function doSearch(){
-      const q = ($q.value || "").trim();
-      if (!q){
+      const selectedOption = $q.options[$q.selectedIndex];
+      if (!selectedOption || !selectedOption.value){
         $res.innerHTML = "";
         $res.classList.add("hidden");
-        $err.textContent = "Type a word to translate.";
+        $err.textContent = "Please select a word to translate.";
         $err.style.display = "block";
         return;
       }
@@ -341,22 +571,19 @@
       $res.innerHTML = "";
       $res.classList.remove("hidden");
 
-      // Find best matching entry and detect which language user typed
-      const results = search(q);
-      if (results && results.length){
-        const e = results[0];
+      // Get the selected word and its entry data
+      const q = selectedOption.value;
+      const entryData = JSON.parse(selectedOption.dataset.entry);
+      
+      // Detect which language the selected word is in
         const qn = normalize(q);
         let detected = "";
-        if (normalize(e.es) === qn) detected = "es";
-        else if (normalize(e.de) === qn) detected = "de";
-        else if (normalize(e.ru) === qn) detected = "ru";
-        else if (normalize(e.en) === qn) detected = "en";
-        renderTranslations({ es: e.es, de: e.de, ru: e.ru, en: e.en }, q, detected);
-      } else {
-        $err.textContent = `No results for “${q}”.`;
-        $err.style.display = "block";
-        $res.classList.add("hidden");
-      }
+      if (normalize(entryData.es) === qn) detected = "es";
+      else if (normalize(entryData.de) === qn) detected = "de";
+      else if (normalize(entryData.ru) === qn) detected = "ru";
+      else if (normalize(entryData.en) === qn) detected = "en";
+      
+      renderTranslations({ es: entryData.es, de: entryData.de, ru: entryData.ru, en: entryData.en }, q, detected);
     }
 
     // Toggle flip on click/Enter/Space (event delegation)
@@ -375,32 +602,15 @@
       card.setAttribute("aria-pressed", String(!card.classList.contains("flipped")));
     });
 
-    $btn.addEventListener("click", doSearch);
-    $q.addEventListener("keydown", e => { if (e.key === "Enter") doSearch(); });
-    // live (debounced)
-    let t = null;
-    $q.addEventListener("input", () => { clearTimeout(t); t = setTimeout(doSearch, 180); });
+    $q.addEventListener("change", doSearch);
+    
+    // Refresh dropdown with new random words on click
+    $q.addEventListener("mousedown", populateDropdown);
+    $q.addEventListener("focus", populateDropdown);
 
-    // On load: no default word, keep results hidden
+    // On load: populate dropdown with initial random words
     window.addEventListener("DOMContentLoaded", () => {
-      $q.value = "";
-      // Populate datalist with hardcoded 10 words across all four languages
-      const $dl = document.getElementById("words");
-      if ($dl){
-        const seen = new Set();
-        for (const e of DICTIONARY){
-          for (const key of ["en","es","de","ru"]){
-            const val = e[key];
-            const norm = normalize(val);
-            if (!seen.has(norm)){
-              seen.add(norm);
-              const opt = document.createElement("option");
-              opt.value = val;
-              $dl.appendChild(opt);
-            }
-          }
-        }
-      }
+      populateDropdown();
     });
   </script>
 </body>
